@@ -38,7 +38,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Anastasia Fowkes - Web Designer, Data Analyst and Developer",
     description: "Web Designer and Frontend by profession, creative at heart.",
-    url: "https://mohitvirli.github.io",
+    url: "https://anastasiia-fowkes-porftolio.netlify.app/",
     siteName: "Anastasia Fowkes's Portfolio",
     locale: "en_US",
     type: "website",
