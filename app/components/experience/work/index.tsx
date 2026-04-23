@@ -9,38 +9,41 @@ const Work = () => {
   const isActive = usePortalStore((state) => state.activePortalId === 'work');
   const { scrollProgress, setScrollProgress } = useScrollStore();
 
-  const handleScroll = (event: Event) => {
-    const target = event.target as HTMLElement;
-    const scrollTop = target.scrollTop;
-    const scrollHeight = target.scrollHeight - target.clientHeight;
-    const progress = Math.min(Math.max(scrollTop / scrollHeight, 0), 1);
-    setScrollProgress(progress);
-  }
+  let touchStartY = 0;
 
-  // Hack: If the portal is active, add the scroll event listener to the scroll
-  // wrapper div. If the portal is not active, remove the scroll event listener.
-  // ScrollControls doesn't work out of the box, so we have to manually handle
-  // the scroll event.
+  const handleWheel = (event: WheelEvent) => {
+    event.preventDefault();
+    setScrollProgress(Math.min(Math.max(scrollProgress + event.deltaY / 1000, 0), 1));
+  };
+
+  const handleTouchStart = (event: TouchEvent) => {
+    touchStartY = event.touches[0].clientY;
+  };
+
+  const handleTouchMove = (event: TouchEvent) => {
+    event.preventDefault();
+    const delta = touchStartY - event.touches[0].clientY;
+    touchStartY = event.touches[0].clientY;
+    setScrollProgress(Math.min(Math.max(scrollProgress + delta / 500, 0), 1));
+  };
+
   useEffect(() => {
     if (isActive) {
-      const scrollWrapper = document.querySelector('div[style*="z-index: -1"]') as HTMLElement;
-      const originalScrollWrapper = document.querySelector('div[style*="z-index: 1"]') as HTMLElement;
       setScrollProgress(0);
-      scrollWrapper.addEventListener('scroll', handleScroll)
-      scrollWrapper.style.zIndex = '1';
-      originalScrollWrapper.style.zIndex = '-1';
+      window.addEventListener('wheel', handleWheel, { passive: false });
+      window.addEventListener('touchstart', handleTouchStart);
+      window.addEventListener('touchmove', handleTouchMove, { passive: false });
     } else {
-      const scrollWrapper = document.querySelector('div[style*="z-index: 1"]') as HTMLElement;
-      const originalScrollWrapper = document.querySelector('div[style*="z-index: -1"]') as HTMLElement;
-
-      if (scrollWrapper) {
-        scrollWrapper.scrollTo({ top: 0, behavior: 'smooth' });
-        setScrollProgress(0);
-        scrollWrapper.removeEventListener('scroll', handleScroll);
-        scrollWrapper.style.zIndex = '-1';
-        originalScrollWrapper.style.zIndex = '1';
-      }
+      setScrollProgress(0);
+      window.removeEventListener('wheel', handleWheel);
+      window.removeEventListener('touchstart', handleTouchStart);
+      window.removeEventListener('touchmove', handleTouchMove);
     }
+    return () => {
+      window.removeEventListener('wheel', handleWheel);
+      window.removeEventListener('touchstart', handleTouchStart);
+      window.removeEventListener('touchmove', handleTouchMove);
+    };
   }, [isActive]);
 
   return (
@@ -49,8 +52,8 @@ const Work = () => {
         <planeGeometry args={[4, 4, 1]} />
         <shadowMaterial opacity={0.1} />
       </mesh>
-      <ScrollControls style={{ zIndex: -1}} pages={2} maxSpeed={0.4}>
-        <Memory scale={new THREE.Vector3(5, 5, 5)} position={new THREE.Vector3(0, -6, 1)}/>
+      <ScrollControls style={{ zIndex: -1 }} pages={2} maxSpeed={0.4}>
+        <Memory scale={new THREE.Vector3(5, 5, 5)} position={new THREE.Vector3(0, -6, 1)} />
         <Timeline progress={isActive ? scrollProgress : 0} />
       </ScrollControls>
     </group>
