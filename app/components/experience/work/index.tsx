@@ -1,6 +1,8 @@
 import { ScrollControls } from "@react-three/drei";
 import { usePortalStore, useScrollStore } from "@stores";
 import { useEffect, useRef } from "react";
+import { useFrame, useThree } from "@react-three/fiber";
+import { isMobile } from "react-device-detect";
 import * as THREE from "three";
 import { Memory } from "../../models/Memory";
 import Timeline from "./Timeline";
@@ -10,13 +12,15 @@ const Work = () => {
   const { scrollProgress, setScrollProgress } = useScrollStore();
   const progressRef = useRef(0);
   const touchStartY = useRef(0);
+  const { camera } = useThree();
 
-  const handleWheel = (event: WheelEvent) => {
-    event.preventDefault();
-    event.stopPropagation();
-    progressRef.current = Math.min(Math.max(progressRef.current + event.deltaY / 2000, 0), 1);
-    setScrollProgress(progressRef.current);
-  };
+  useFrame((state, delta) => {
+    if (isActive && !isMobile) {
+      const target = Math.min(Math.max((state.pointer.y * -0.5) + 0.5, 0), 1);
+      progressRef.current = THREE.MathUtils.damp(progressRef.current, target, 2, delta);
+      setScrollProgress(progressRef.current);
+    }
+  });
 
   const handleTouchStart = (event: TouchEvent) => {
     touchStartY.current = event.touches[0].clientY;
@@ -35,18 +39,17 @@ const Work = () => {
     if (isActive) {
       progressRef.current = 0;
       setScrollProgress(0);
-      window.addEventListener('wheel', handleWheel, { passive: false, capture: true });
-      window.addEventListener('touchstart', handleTouchStart, { capture: true });
-      window.addEventListener('touchmove', handleTouchMove, { passive: false, capture: true });
+      if (isMobile) {
+        window.addEventListener('touchstart', handleTouchStart, { capture: true });
+        window.addEventListener('touchmove', handleTouchMove, { passive: false, capture: true });
+      }
     } else {
       progressRef.current = 0;
       setScrollProgress(0);
-      window.removeEventListener('wheel', handleWheel, { capture: true });
       window.removeEventListener('touchstart', handleTouchStart, { capture: true });
       window.removeEventListener('touchmove', handleTouchMove, { capture: true });
     }
     return () => {
-      window.removeEventListener('wheel', handleWheel, { capture: true });
       window.removeEventListener('touchstart', handleTouchStart, { capture: true });
       window.removeEventListener('touchmove', handleTouchMove, { capture: true });
     };
